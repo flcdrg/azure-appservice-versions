@@ -95,6 +95,8 @@ jobs:
           }
           "@
 
+          $kuduApiUrl = "$kuduApiBaseUrl/api/command";
+
           $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
 
           $response.Output
