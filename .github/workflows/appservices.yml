@@ -77,7 +77,6 @@ jobs:
                   -ResourceType $resourceType `
                   -ResourceName $resourceName `
                   -Action list `
-                  -ApiVersion $apiVersion `
                   -Force;
 
           $user = $publishingCredentials.Properties.PublishingUserName;
