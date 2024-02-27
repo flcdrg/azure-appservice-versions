@@ -66,7 +66,7 @@ jobs:
       - name: "Get version"
         shell: pwsh
         run: |
-          Install-Module Az.Websites -Force -AllowClobber -Scope CurrentUser -Repository PSGallery
+          Install-Module Az.Websites, Az.Resources -Force -AllowClobber -Scope CurrentUser -Repository PSGallery
 
           $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-win-node16-versions-australiaeast"
 
