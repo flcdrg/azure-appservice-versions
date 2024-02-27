@@ -30,3 +30,12 @@ resource windowsWebApp 'Microsoft.Web/sites@2022-09-01' = {
     }
   }
 }
+
+// config for app service that uses node 16
+resource windowsWebAppConfig 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: windowsWebApp
+  name: 'web'
+  properties: {
+    windowsFxVersion: 'NODE:16LTS'
+  }
+}
