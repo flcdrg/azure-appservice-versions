@@ -68,26 +68,6 @@ jobs:
         run: |
           Install-Module Az.Websites, Az.Resources -Force -AllowClobber -Scope CurrentUser -Repository PSGallery
 
-          $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-win-node16-versions-australiaeast"
-
-          $resourceName = "$($app.Name)/publishingcredentials";
-          $resourceType = "Microsoft.Web/sites/config";
-          $publishingCredentials = Invoke-AzResourceAction `
-                  -ResourceGroupName $app.ResourceGroup `
-                  -ResourceType $resourceType `
-                  -ResourceName $resourceName `
-                  -Action list `
-                  -Force;
-
-          $user = $publishingCredentials.Properties.PublishingUserName;
-          $pass = $publishingCredentials.Properties.PublishingPassword;
-          $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));
-
-          $header = @{
-              Authorization = "Basic $creds"
-          };
-          $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
-
           $json = @"
           {
               "command": 'node --version',
@@ -95,8 +75,32 @@ jobs:
           }
           "@
 
-          $kuduApiUrl = "$kuduApiBaseUrl/api/command";
+          $nodeVersions = @(16, 18, 20)
 
-          $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
+          foreach ($version in $nodeVersions) {
+              $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-win-node$version-versions-australiaeast"
 
-          $response.Output
+              $resourceName = "$($app.Name)/publishingcredentials";
+              $resourceType = "Microsoft.Web/sites/config";
+              $publishingCredentials = Invoke-AzResourceAction `
+                      -ResourceGroupName $app.ResourceGroup `
+                      -ResourceType $resourceType `
+                      -ResourceName $resourceName `
+                      -Action list `
+                      -Force;
+
+              $user = $publishingCredentials.Properties.PublishingUserName;
+              $pass = $publishingCredentials.Properties.PublishingPassword;
+              $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));
+
+              $header = @{
+                  Authorization = "Basic $creds"
+              };
+              $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
+
+              $kuduApiUrl = "$kuduApiBaseUrl/api/command";
+
+              $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
+
+              Write-Output "$version $($response.Output)"
+          }
