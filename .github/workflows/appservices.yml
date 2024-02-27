@@ -20,7 +20,7 @@ jobs:
           creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
 
       - name: Test
-        uses: azure/arm-deploy@v1
+        uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
           template: ./bicep/main.bicep
@@ -55,7 +55,7 @@ jobs:
           creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
 
       - name: deploy
-        uses: azure/arm-deploy@v1
+        uses: azure/arm-deploy@v2
         id: deploy
         with:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
