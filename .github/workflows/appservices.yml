@@ -75,8 +75,8 @@ jobs:
           }
           "@
 
-          "| Framework | Actual Version |" >> $GITHUB_STEP_SUMMARY
-          "|-------|-----------|" >> $GITHUB_STEP_SUMMARY
+          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
+          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
 
           $nodeVersions = @(16, 18, 20)
 
@@ -106,6 +106,6 @@ jobs:
               $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
 
               Write-Output "$version $($response.Output)"
-              "| Windows Node $version | $($response.Output) |" >> $GITHUB_STEP_SUMMARY
+              "| Windows Node $version | $($response.Output) |" >> $Env:GITHUB_STEP_SUMMARY
 
           }
