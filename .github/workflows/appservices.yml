@@ -53,6 +53,7 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
+          enable-AzPSSession: true
 
       - name: deploy
         uses: azure/arm-deploy@v2
@@ -61,3 +62,39 @@ jobs:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
           template: ./bicep/main.bicep
           failOnStdErr: false
+
+      - name: "Get version"
+        shell: pwsh
+        run: |
+            $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-win-node16-versions-australiaeast"
+
+              $resourceName = "$($app.Name)/publishingcredentials";
+              $resourceType = "Microsoft.Web/sites/config";
+              $publishingCredentials = Invoke-AzResourceAction `
+                      -ResourceGroupName $app.ResourceGroup `
+                      -ResourceType $resourceType `
+                      -ResourceName $resourceName `
+                      -Action list `
+                      -ApiVersion $apiVersion `
+                      -Force;
+
+              $user = $publishingCredentials.Properties.PublishingUserName;
+              $pass = $publishingCredentials.Properties.PublishingPassword;
+              $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));                    
+
+              $header = @{
+                  Authorization = "Basic $creds"
+              };
+              $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
+
+              $json = @"
+              {
+                  "command": 'node --version',
+                  "dir" : 'site\\wwwroot'
+              }
+              "@
+
+              $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
+
+              $response.Output
+          
