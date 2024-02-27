@@ -106,7 +106,7 @@ jobs:
               $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
 
               $actualVersion = $response.Output.Trim()
-              Write-Output "$version: $actualVersion"
+              Write-Output "$($version): $actualVersion"
               "| Windows Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
 
           }
