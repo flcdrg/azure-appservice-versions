@@ -25,6 +25,7 @@ jobs:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
           template: ./bicep/main.bicep
           failOnStdErr: false
+          deploymentMode: Complete
           additionalArguments: --what-if
 
       - name: Archive Bicep
@@ -61,6 +62,7 @@ jobs:
         with:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
           template: ./bicep/main.bicep
+          deploymentMode: Complete
           failOnStdErr: false
 
       - name: "Get version"
@@ -78,35 +80,39 @@ jobs:
           "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
           "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
 
+          $platforms = @('Windows', 'Linux')
+
           $nodeVersions = @(16, 18, 20)
 
-          foreach ($version in $nodeVersions) {
-              $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-win-node$version-versions-australiaeast"
+          foreach ($platform in $platforms) {
+            foreach ($version in $nodeVersions) {
+                $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
-              $resourceName = "$($app.Name)/publishingcredentials";
-              $resourceType = "Microsoft.Web/sites/config";
-              $publishingCredentials = Invoke-AzResourceAction `
-                      -ResourceGroupName $app.ResourceGroup `
-                      -ResourceType $resourceType `
-                      -ResourceName $resourceName `
-                      -Action list `
-                      -Force;
+                $resourceName = "$($app.Name)/publishingcredentials";
+                $resourceType = "Microsoft.Web/sites/config";
+                $publishingCredentials = Invoke-AzResourceAction `
+                        -ResourceGroupName $app.ResourceGroup `
+                        -ResourceType $resourceType `
+                        -ResourceName $resourceName `
+                        -Action list `
+                        -Force;
 
-              $user = $publishingCredentials.Properties.PublishingUserName;
-              $pass = $publishingCredentials.Properties.PublishingPassword;
-              $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));
+                $user = $publishingCredentials.Properties.PublishingUserName;
+                $pass = $publishingCredentials.Properties.PublishingPassword;
+                $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));
 
-              $header = @{
-                  Authorization = "Basic $creds"
-              };
-              $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
+                $header = @{
+                    Authorization = "Basic $creds"
+                };
+                $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
 
-              $kuduApiUrl = "$kuduApiBaseUrl/api/command";
+                $kuduApiUrl = "$kuduApiBaseUrl/api/command";
 
-              $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
+                $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
 
-              $actualVersion = $response.Output.Trim()
-              Write-Output "$($version): $actualVersion"
-              "| Windows Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
+                $actualVersion = $response.Output.Trim()
+                Write-Output "$($version): $actualVersion"
+                "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
 
+            }
           }
