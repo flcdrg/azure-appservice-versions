@@ -89,14 +89,16 @@ jobs:
                   $runtime = "NODE:${version}LTS"
                 } else {
                   $runtime = "NODE:${version}-lts"
-                } 
-                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime"
+                }
+                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --track-status true
             }
           }
 
       - name: "Get version"
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
           "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
           "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
 
@@ -107,7 +109,24 @@ jobs:
           foreach ($platform in $platforms) {
             foreach ($version in $nodeVersions) {
 
-                $response = Invoke-RestMethod -Method Get -Uri "app-$($platform.ToLower())-node$version-versions-australiaeast"
+                $response = $null
+
+                $count = 0
+                while ($response -eq $null) {
+                    try {
+                        $count += 1
+                        Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+                        $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+                    } catch {
+                        Write-Host "Retrying in 5 seconds..."
+                        Start-Sleep -Seconds 5
+                    }
+
+                    if ($count -eq 5) {
+                        Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+                        break
+                    }
+                }
 
                 $actualVersion = $response.Trim()
                 Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
