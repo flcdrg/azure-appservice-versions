@@ -1,10 +1,14 @@
 # Get current Azure App Service application versions
 
-Display application version in Azure App Services
+Display runtime versions in Azure App Services.
+
+For example, when you specify Node 18 LTS, what exact version is Azure provisioning? Surprisingly, it probably isn't the latest LTS version in that major release.
+
+This project creates Azure App Services with different runtime versions on Windows and Linux and then generates a report as to what actual node version is being used.
 
 ## Infrastructure
 
-Note: You will need to adjust the names if you are trying to provision your own resources.
+Note: You will need to adjust the names if you are trying to provision your resources.
 
 Create a new resource group in Azure
 

@@ -25,10 +25,11 @@ resource windowsWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in nodeVe
     siteConfig: {
       windowsFxVersion: 'NODE:${version}LTS'
       appSettings: [
-        // {
-        //   name: 'WEBSITE_NODE_DEFAULT_VERSION'
-        //   value: '~${version}'
-        // }
+        // Windows requires this, whereas Linux does not
+        {
+          name: 'WEBSITE_NODE_DEFAULT_VERSION'
+          value: '~${version}'
+        }
         {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
           value: 'True'
