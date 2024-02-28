@@ -94,15 +94,6 @@ jobs:
       - name: "Get version"
         shell: pwsh
         run: |
-          Install-Module Az.Websites, Az.Resources -Force -AllowClobber -Scope CurrentUser -Repository PSGallery
-
-          $json = @"
-          {
-              "command": 'node --version',
-              "dir" : '.'
-          }
-          "@
-
           "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
           "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
 
@@ -112,33 +103,11 @@ jobs:
 
           foreach ($platform in $platforms) {
             foreach ($version in $nodeVersions) {
-                $app = Get-AzWebApp -ResourceGroupName "${{ vars.AZURE_RESOURCE_GROUP }}" -Name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
-                $resourceName = "$($app.Name)/publishingcredentials";
-                $resourceType = "Microsoft.Web/sites/config";
-                $publishingCredentials = Invoke-AzResourceAction `
-                        -ResourceGroupName $app.ResourceGroup `
-                        -ResourceType $resourceType `
-                        -ResourceName $resourceName `
-                        -Action list `
-                        -Force;
+                $response = Invoke-RestMethod -Method Get -Uri "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
-                $user = $publishingCredentials.Properties.PublishingUserName;
-                $pass = $publishingCredentials.Properties.PublishingPassword;
-                $creds = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("${user}:${pass}")));
-
-                $header = @{
-                    Authorization = "Basic $creds"
-                };
-                $kuduApiBaseUrl = "https://$($app.Name).scm.azurewebsites.net";
-
-                $kuduApiUrl = "$kuduApiBaseUrl/api/command";
-
-                $response = Invoke-RestMethod -Method Post -Uri $kuduApiUrl -Headers $header -Body $json -ContentType "application/json"
-
-                $actualVersion = $response.Output.Trim()
+                $actualVersion = $response.Trim()
                 Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
                 "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
-
             }
           }
