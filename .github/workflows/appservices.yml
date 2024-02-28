@@ -81,7 +81,7 @@ jobs:
 
           foreach ($platform in $platforms) {
             foreach ($version in $nodeVersions) {
-                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
+                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform
             }
           }
 
