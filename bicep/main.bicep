@@ -58,11 +58,25 @@ resource linuxAppServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
 resource linuxWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in nodeVersions: {
   name: 'app-linux-node${version}-versions-australiaeast'
   location: location
-  //kind: 'app,linux'
   properties: {
     serverFarmId: linuxAppServicePlan.id
+    httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'NODE|${version}-lts'
+      http20Enabled: true
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
+      
+      appSettings: [
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'True'
+        }
+        {
+          name: 'WEBSITE_HTTPLOGGING_RETENTION_DAYS'
+          value: '3'
+        }
+      ]
     }
   }
 }]
