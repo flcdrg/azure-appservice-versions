@@ -80,6 +80,9 @@ jobs:
           $nodeVersions = @(16, 18, 20)
 
           foreach ($platform in $platforms) {
+            # Remove cached .azure folder between platform changes
+            Remove-Item -recurse -force .azure -ErrorAction Ignore
+
             foreach ($version in $nodeVersions) {
 
                 if ($platform -eq 'Windows') {

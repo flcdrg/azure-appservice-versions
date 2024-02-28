@@ -23,22 +23,22 @@ resource windowsWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in nodeVe
   properties: {
     serverFarmId: windowsAppServicePlan.id
     siteConfig: {
+      windowsFxVersion: 'NODE:${version}LTS'
       appSettings: [
+        // {
+        //   name: 'WEBSITE_NODE_DEFAULT_VERSION'
+        //   value: '~${version}'
+        // }
         {
-          name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~${version}'
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'True'
+        }
+        {
+          name: 'WEBSITE_HTTPLOGGING_RETENTION_DAYS'
+          value: '3'
         }
       ]
     }
-  }
-}]
-
-// config for app service
-resource windowsWebAppConfig 'Microsoft.Web/sites/config@2022-09-01' = [for (version, i) in nodeVersions: {
-  parent: windowsWebApp[i]
-  name: 'web'
-  properties: {
-    windowsFxVersion: 'NODE:${version}LTS'
   }
 }]
 
