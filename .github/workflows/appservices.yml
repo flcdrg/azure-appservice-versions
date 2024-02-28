@@ -73,7 +73,7 @@ jobs:
           $json = @"
           {
               "command": 'node --version',
-              "dir" : 'site\\wwwroot'
+              "dir" : '.'
           }
           "@
 
