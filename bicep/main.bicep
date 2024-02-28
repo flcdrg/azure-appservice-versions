@@ -60,7 +60,7 @@ resource linuxWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in nodeVers
   properties: {
     serverFarmId: linuxAppServicePlan.id
     siteConfig: {
-      linuxFxVersion: 'NODE:${version}-lts'
+      linuxFxVersion: 'NODE|${version}-lts'
     }
   }
 }]
