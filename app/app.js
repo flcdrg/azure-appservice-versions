@@ -4,7 +4,7 @@ const http = require('http');
 const debug = require('debug')('app:server');
 
 app.get('/', function (req, res) {
-res.send('Hello World!')
+res.send(process.versions.node)
 })
 
 var port = normalizePort(process.env.PORT || '3000');

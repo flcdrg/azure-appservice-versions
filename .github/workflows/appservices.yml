@@ -65,6 +65,19 @@ jobs:
           deploymentMode: Complete
           failOnStdErr: false
 
+      - name: "Publish apps"
+        shell: pwsh
+        working-directory: ./app
+        run: |
+          $platforms = @('Windows', 'Linux')
+          $nodeVersions = @(16, 18, 20)
+
+          foreach ($platform in $platforms) {
+            foreach ($version in $nodeVersions) {
+                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
+            }
+          }
+
       - name: "Get version"
         shell: pwsh
         run: |
