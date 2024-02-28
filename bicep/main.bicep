@@ -42,11 +42,13 @@ resource windowsWebAppConfig 'Microsoft.Web/sites/config@2022-09-01' = [for (ver
   }
 }]
 
-
 // Linux app services
 resource linuxAppServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'plan-linux-versions-australiaeast'
   location: location
+  properties: {
+    reserved: true
+  }
   sku: {
     name: 'F1'
   }
@@ -56,7 +58,7 @@ resource linuxAppServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
 resource linuxWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in nodeVersions: {
   name: 'app-linux-node${version}-versions-australiaeast'
   location: location
-  kind: 'app'
+  //kind: 'app,linux'
   properties: {
     serverFarmId: linuxAppServicePlan.id
     siteConfig: {
