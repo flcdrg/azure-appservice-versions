@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: "Checkout GitHub Action"
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: "Login via Azure CLI"
         uses: azure/login@v1
@@ -65,9 +67,14 @@ jobs:
           deploymentMode: Complete
           failOnStdErr: false
 
+      - name: "checkout"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: "Publish apps"
         shell: pwsh
-        working-directory: ./app
+        working-directory: app
         run: |
           $platforms = @('Windows', 'Linux')
           $nodeVersions = @(16, 18, 20)
