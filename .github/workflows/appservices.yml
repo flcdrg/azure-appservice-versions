@@ -66,52 +66,6 @@ jobs:
           deploymentMode: Complete
           failOnStdErr: false
 
-      - name: "Summary header"
-        shell: pwsh
-        run: |
-          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
-          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
-
-      # - name: "Get version"
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = "Stop"
-
-      #     "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
-      #     "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
-
-      #     $platforms = @('Windows', 'Linux')
-
-      #     $nodeVersions = @(16, 18, 20)
-
-      #     foreach ($platform in $platforms) {
-      #       foreach ($version in $nodeVersions) {
-
-      #           $response = $null
-
-      #           $count = 0
-      #           while ($response -eq $null) {
-      #               try {
-      #                   $count += 1
-      #                   Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-      #                   $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-      #               } catch {
-      #                   Write-Host "Retrying in 5 seconds..."
-      #                   Start-Sleep -Seconds 5
-      #               }
-
-      #               if ($count -eq 5) {
-      #                   Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-      #                   break
-      #               }
-      #           }
-
-      #           $actualVersion = $response.Trim()
-      #           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
-      #           "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
-      #       }
-      #     }
-
   publish-versions:
     name: Publish Versions
     needs: deploy-bicep
@@ -120,6 +74,9 @@ jobs:
       matrix:
         node-version: [16, 18, 20]
         platform: [Windows, Linux]
+
+    outputs:
+      output1: ${{ steps.get-version.outputs.version }}
 
     steps:
       - name: "checkout"
@@ -132,7 +89,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
           enable-AzPSSession: true
-  
+
       - name: "Publish apps"
         shell: pwsh
         working-directory: app
@@ -150,6 +107,7 @@ jobs:
 
       - name: "Get version"
         shell: pwsh
+        id: get-version
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -179,6 +137,8 @@ jobs:
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
           "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
 
+          "version=| $platform Node $version | $actualVersion |" >> "$Env:GITHUB_OUTPUT"
+
   publish-summary:
     name: Publish Summary
     needs: publish-versions
@@ -186,10 +146,11 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: "Summary"
-        shell: bash
+      - name: Dump needs context
+        env:
+          NEEDS_CONTEXT: ${{ toJson(needs) }}
         run: |
-          echo "Finished"
-          echo "##[group]Summary"
-          cat $GITHUB_STEP_SUMMARY
-          echo "##[endgroup]"
+          echo "$NEEDS_CONTEXT"
+
+          "| Framework | Actual Version |" >> $GITHUB_STEP_SUMMARY
+          "|-------|-----------|" >> $GITHUB_STEP_SUMMARY
