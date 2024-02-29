@@ -89,7 +89,7 @@ jobs:
 
       - name: "Publish apps"
         shell: pwsh
-        working-directory: app
+        working-directory: apps/nodeApp
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
@@ -133,7 +133,7 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
 
-          "| $platform Node $version | $actualVersion |" > output.txt
+          "| $platform | Node $version | $actualVersion |" > output.txt
 
       - name: "Upload version"
         uses: actions/upload-artifact@v4
@@ -156,8 +156,8 @@ jobs:
       - name: Dump needs context
         shell: pwsh
         run: |
-          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
-          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
+          "| Platform | Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
+          "|----------|-----------|----------------|" >> $Env:GITHUB_STEP_SUMMARY
 
           gci -Recurse
 
