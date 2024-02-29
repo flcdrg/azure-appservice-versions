@@ -66,7 +66,81 @@ jobs:
           deploymentMode: Complete
           failOnStdErr: false
 
-  publish-versions:
+  publish-dotnet-versions:
+    name: Publish .NET Versions
+    needs: deploy-bicep
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [6, 7, 8]
+        platform: [Windows, Linux]
+    
+    steps:
+      - name: "checkout"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Login via Azure CLI"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
+          enable-AzPSSession: true
+
+      - name: "Publish apps"
+        shell: pwsh
+        working-directory: apps/dotnetApp
+        run: |
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.dotnet-version }}"
+
+          if ($platform -eq 'Windows') {
+            $runtime = "dotnet:$version"
+          } else {
+            $runtime = "DOTNETCORE:${version}.0"
+          }
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --track-status true
+
+      - name: "Get version"
+        shell: pwsh
+        id: get-version
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.dotnet-version }}"
+
+          $response = $null
+
+          $count = 0
+          while ($response -eq $null) {
+              try {
+                  $count += 1
+                  Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-australiaeast.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-australiaeast.azurewebsites.net"
+              } catch {
+                  Write-Host "Retrying in 5 seconds..."
+                  Start-Sleep -Seconds 5
+              }
+
+              if ($count -eq 5) {
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-australiaeast.azurewebsites.net"
+                  break
+              }
+          }
+
+          $actualVersion = $response.Trim()
+          Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
+
+          "| $platform | .NET $version | $actualVersion |" > output.txt
+
+      - name: "Upload version"
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
+          path: output.txt
+
+  publish-node-versions:
     name: Publish Versions
     needs: deploy-bicep
     runs-on: ubuntu-latest
@@ -143,7 +217,10 @@ jobs:
 
   publish-summary:
     name: Publish Summary
-    needs: publish-versions
+    needs: 
+      - publish-node-versions
+      - publish-dotnet-versions
+
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
