@@ -75,9 +75,6 @@ jobs:
         node-version: [16, 18, 20]
         platform: [Windows, Linux]
 
-    outputs:
-      output1: ${{ steps.get-version.outputs.version }}
-
     steps:
       - name: "checkout"
         uses: actions/checkout@v4
@@ -135,9 +132,14 @@ jobs:
 
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
-          "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
 
-          "version=| $platform Node $version | $actualVersion |" >> "$Env:GITHUB_OUTPUT"
+          "version=| $platform Node $version | $actualVersion |" > output.txt
+
+      - name: "Upload version"
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ matrix.platform }}-${{ matrix.node-version}}
+          path: output.txt
 
   publish-summary:
     name: Publish Summary
@@ -146,11 +148,17 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Dump needs context
-        env:
-          NEEDS_CONTEXT: ${{ toJson(needs) }}
-        run: |
-          echo "$NEEDS_CONTEXT"
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .
 
-          "| Framework | Actual Version |" >> $GITHUB_STEP_SUMMARY
-          "|-------|-----------|" >> $GITHUB_STEP_SUMMARY
+      - name: Dump needs context
+        shell: pwsh
+        run: |
+          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
+          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
+
+          gci -Recurse
+
+          Get-ChildItem -Recurse *.txt >> $Env:GITHUB_STEP_SUMMARY
