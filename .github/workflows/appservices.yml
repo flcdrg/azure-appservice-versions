@@ -56,7 +56,6 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
-          enable-AzPSSession: true
 
       - name: deploy
         uses: azure/arm-deploy@v2
@@ -128,6 +127,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: "Login via Azure CLI"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
+          enable-AzPSSession: true
+  
       - name: "Publish apps"
         shell: pwsh
         working-directory: app
