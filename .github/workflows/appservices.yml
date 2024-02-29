@@ -161,4 +161,4 @@ jobs:
 
           gci -Recurse
 
-          Get-ChildItem -Recurse *.txt >> $Env:GITHUB_STEP_SUMMARY
+          Get-ChildItem -Recurse *.txt | Get-Content | >> $Env:GITHUB_STEP_SUMMARY
