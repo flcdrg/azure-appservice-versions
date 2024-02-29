@@ -117,3 +117,28 @@ resource linuxDotNetWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in do
     }
   }
 }]
+
+resource windowsDotNetWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in dotnetVersions: {
+  name: 'app-windows-dotnet${version}-versions-australiaeast'
+  location: location
+  kind: 'app'
+  properties: {
+    serverFarmId: windowsAppServicePlan.id
+    siteConfig: {
+      windowsFxVersion: 'dotnet:${version}'
+      http20Enabled: true
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
+      appSettings: [
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'True'
+        }
+        {
+          name: 'WEBSITE_HTTPLOGGING_RETENTION_DAYS'
+          value: '3'
+        }
+      ]
+    }
+  }
+}]
