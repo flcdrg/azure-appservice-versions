@@ -178,3 +178,18 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
           "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
+
+  publish-summary:
+    name: Publish Summary
+    needs: publish-versions
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: "Summary"
+        shell: bash
+        run: |
+          echo "Finished"
+          echo "##[group]Summary"
+          cat $GITHUB_STEP_SUMMARY
+          echo "##[endgroup]"
