@@ -133,7 +133,7 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
 
-          "version=| $platform Node $version | $actualVersion |" > output.txt
+          "| $platform Node $version | $actualVersion |" > output.txt
 
       - name: "Upload version"
         uses: actions/upload-artifact@v4
