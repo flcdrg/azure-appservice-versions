@@ -37,8 +37,8 @@ jobs:
           name: bicep
           path: "./bicep"
 
-  deploy:
-    name: Deploy
+  deploy-bicep:
+    name: Deploy Bicep
     needs:
       - build-bicep
     runs-on: ubuntu-latest
@@ -67,33 +67,9 @@ jobs:
           deploymentMode: Complete
           failOnStdErr: false
 
-      - name: "checkout"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: "Publish apps"
+      - name: "Summary header"
         shell: pwsh
-        working-directory: app
         run: |
-          $platforms = @('Windows', 'Linux')
-          $nodeVersions = @(16, 18, 20)
-
-          foreach ($platform in $platforms) {
-            # Remove cached .azure folder between platform changes
-            Remove-Item -recurse -force .azure -ErrorAction Ignore
-
-            foreach ($version in $nodeVersions) {
-
-                if ($platform -eq 'Windows') {
-                  $runtime = "NODE:${version}LTS"
-                } else {
-                  $runtime = "NODE:${version}-lts"
-                }
-                az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --track-status true
-            }
-          }
-
           "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
           "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
 
@@ -137,9 +113,9 @@ jobs:
       #       }
       #     }
 
-  query-versions:
-    name: Query Versions
-    needs: deploy
+  publish-versions:
+    name: Publish Versions
+    needs: deploy-bicep
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -147,6 +123,26 @@ jobs:
         platform: [Windows, Linux]
 
     steps:
+      - name: "checkout"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Publish apps"
+        shell: pwsh
+        working-directory: app
+        run: |
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.node-version }}"
+
+          if ($platform -eq 'Windows') {
+            $runtime = "NODE:${version}LTS"
+          } else {
+            $runtime = "NODE:${version}-lts"
+          }
+
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --track-status true
+
       - name: "Get version"
         shell: pwsh
         run: |
@@ -177,5 +173,3 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
           "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
-            }
-          }
