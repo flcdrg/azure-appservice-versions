@@ -94,42 +94,88 @@ jobs:
             }
           }
 
+          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
+          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
+
+      # - name: "Get version"
+      #   shell: pwsh
+      #   run: |
+      #     $ErrorActionPreference = "Stop"
+
+      #     "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
+      #     "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
+
+      #     $platforms = @('Windows', 'Linux')
+
+      #     $nodeVersions = @(16, 18, 20)
+
+      #     foreach ($platform in $platforms) {
+      #       foreach ($version in $nodeVersions) {
+
+      #           $response = $null
+
+      #           $count = 0
+      #           while ($response -eq $null) {
+      #               try {
+      #                   $count += 1
+      #                   Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+      #                   $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+      #               } catch {
+      #                   Write-Host "Retrying in 5 seconds..."
+      #                   Start-Sleep -Seconds 5
+      #               }
+
+      #               if ($count -eq 5) {
+      #                   Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+      #                   break
+      #               }
+      #           }
+
+      #           $actualVersion = $response.Trim()
+      #           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
+      #           "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
+      #       }
+      #     }
+
+  query-versions:
+    name: Query Versions
+    needs: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18, 20]
+        platform: [Windows, Linux]
+
+    steps:
       - name: "Get version"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
 
-          "| Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
-          "|-------|-----------|" >> $Env:GITHUB_STEP_SUMMARY
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.node-version }}"
 
-          $platforms = @('Windows', 'Linux')
+          $response = $null
 
-          $nodeVersions = @(16, 18, 20)
+          $count = 0
+          while ($response -eq $null) {
+              try {
+                  $count += 1
+                  Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+              } catch {
+                  Write-Host "Retrying in 5 seconds..."
+                  Start-Sleep -Seconds 5
+              }
 
-          foreach ($platform in $platforms) {
-            foreach ($version in $nodeVersions) {
+              if ($count -eq 5) {
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
+                  break
+              }
+          }
 
-                $response = $null
-
-                $count = 0
-                while ($response -eq $null) {
-                    try {
-                        $count += 1
-                        Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-                        $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-                    } catch {
-                        Write-Host "Retrying in 5 seconds..."
-                        Start-Sleep -Seconds 5
-                    }
-
-                    if ($count -eq 5) {
-                        Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
-                        break
-                    }
-                }
-
-                $actualVersion = $response.Trim()
-                Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
-                "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
+          $actualVersion = $response.Trim()
+          Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
+          "| $platform Node $version | $actualVersion |" >> $Env:GITHUB_STEP_SUMMARY
             }
           }
