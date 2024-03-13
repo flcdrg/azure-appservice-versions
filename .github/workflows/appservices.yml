@@ -100,9 +100,11 @@ jobs:
           # Edit dotnetApp.csproj
           $csprojPath = "dotnetApp.csproj"
           $csprojContent = Get-Content -Path $csprojPath
-          $csprojContent = $csprojContent -replace '<TargetFramework>.*<\/TargetFramework>', "<TargetFramework>net${version}.0<\/TargetFramework>"
+          $csprojContent = $csprojContent -replace '<TargetFramework>.*<\/TargetFramework>', "<TargetFramework>net${version}.0</TargetFramework>"
           $csprojContent | Set-Content -Path $csprojPath
 
+          Get-Content $csprojPath
+          
           if ($platform -eq 'Windows') {
             $runtime = "dotnet:$version"
           } else {
