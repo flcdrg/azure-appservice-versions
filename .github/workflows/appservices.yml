@@ -29,6 +29,7 @@ jobs:
           failOnStdErr: false
           deploymentMode: Complete
           additionalArguments: --what-if
+          scope: resourcegroup
 
       - name: Archive Bicep
         if: success() && github.ref == 'refs/heads/main'
@@ -65,16 +66,18 @@ jobs:
           template: ./bicep/main.bicep
           deploymentMode: Complete
           failOnStdErr: false
+          scope: resourcegroup
 
   publish-dotnet-versions:
     name: Publish .NET Versions
     needs: deploy-bicep
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         dotnet-version: [6, 7, 8]
         platform: [Windows, Linux]
-    
+
     steps:
       - name: "checkout"
         uses: actions/checkout@v4
@@ -93,6 +96,12 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
+
+          # Edit dotnetApp.csproj
+          $csprojPath = "apps/dotnetApp/dotnetApp.csproj"
+          $csprojContent = Get-Content -Path $csprojPath
+          $csprojContent = $csprojContent -replace '<TargetFramework>.*<\/TargetFramework>', "<TargetFramework>net${version}.0<\/TargetFramework>"
+          $csprojContent | Set-Content -Path $csprojPath
 
           if ($platform -eq 'Windows') {
             $runtime = "dotnet:$version"
@@ -217,7 +226,7 @@ jobs:
 
   publish-summary:
     name: Publish Summary
-    needs: 
+    needs:
       - publish-node-versions
       - publish-dotnet-versions
 

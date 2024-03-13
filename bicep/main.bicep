@@ -106,10 +106,6 @@ resource linuxDotNetWebApp 'Microsoft.Web/sites@2022-09-01' = [for version in do
           value: 'True'
         }
         {
-          name: 'SCM_BUILD_ARGS'
-          value: '-c Release -f net${version}.0'
-        }
-        {
           name: 'WEBSITE_HTTPLOGGING_RETENTION_DAYS'
           value: '3'
         }
