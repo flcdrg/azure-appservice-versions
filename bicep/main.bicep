@@ -3,9 +3,9 @@ param location string = resourceGroup().location
 
 var windowsHostingPlanName = 'plan-windows-versions-australiaeast'
 
-var nodeVersions = ['16', '18', '20', '22']
+var nodeVersions = ['20', '22']
 
-var dotnetVersions = ['6', '7', '8', '9']
+var dotnetVersions = ['8', '9']
 
 // https://learn.microsoft.com/azure/templates/microsoft.web/serverfarms?WT.mc_id=DOP-MVP-5001655
 resource windowsAppServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
