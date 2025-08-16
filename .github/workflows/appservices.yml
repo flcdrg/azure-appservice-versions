@@ -10,6 +10,11 @@ permissions:
   id-token: write
   contents: read
 
+# Ensure only one workflow run at a time per branch
+concurrency:
+  group: appservices-pipeline-${{ github.ref == 'refs/heads/main' && 'main' || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-bicep:
     name: Build Bicep
@@ -162,6 +167,12 @@ jobs:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.txt
 
+      # Stop app service once we have the info to save cpu etc
+      - name: App Service down
+        shell: pwsh
+        run: |
+          az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
+
   publish-node-versions:
     name: Publish Versions
     needs: deploy-bicep
@@ -239,6 +250,12 @@ jobs:
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
           path: output.txt
+
+      # Stop app service once we have the info to save cpu etc
+      - name: App Service down
+        shell: pwsh
+        run: |
+          az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
   publish-summary:
     name: Publish Summary
