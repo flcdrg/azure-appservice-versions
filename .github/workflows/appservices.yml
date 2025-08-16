@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-bicep:
     name: Build Bicep
@@ -19,7 +23,9 @@ jobs:
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Test
         uses: azure/arm-deploy@v2
@@ -56,7 +62,9 @@ jobs:
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: deploy
         uses: azure/arm-deploy@v2
@@ -104,7 +112,7 @@ jobs:
           $csprojContent | Set-Content -Path $csprojPath
 
           Get-Content $csprojPath
-          
+
           if ($platform -eq 'Windows') {
             $runtime = "dotnet:$version"
           } else {
@@ -250,7 +258,6 @@ jobs:
           gci -Recurse
 
           Get-ChildItem -Recurse *.txt | Get-Content >> $Env:GITHUB_STEP_SUMMARY
-
 
 # Push onto static web app branch
 
