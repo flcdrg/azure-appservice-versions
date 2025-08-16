@@ -168,12 +168,12 @@ jobs:
           path: output.txt
 
       # Stop app service once we have the info to save cpu etc
-      - name: App Service down
+      - name: App Service stop
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-          az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
+          az webapp stop --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
 
   publish-node-versions:
     name: Publish Versions
@@ -254,12 +254,12 @@ jobs:
           path: output.txt
 
       # Stop app service once we have the info to save cpu etc
-      - name: App Service down
+      - name: App Service stop
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-          az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
+          az webapp stop --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
   publish-summary:
     name: Publish Summary
