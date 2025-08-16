@@ -83,7 +83,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet-version: [6, 8, 9]
+        dotnet-version: [8, 9]
         platform: [Windows, Linux]
       fail-fast: false
 
