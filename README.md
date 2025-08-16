@@ -6,6 +6,18 @@ For example, when you specify Node 18 LTS, what exact version is Azure provision
 
 This project creates Azure App Services with different runtime versions on Windows and Linux and then generates a report as to what actual node version is being used.
 
+You can find out the current supported runtime versions using the following command:
+
+```bash
+az webapp list-runtimes --os linux
+```
+
+And likewise for Windows:
+
+```bash
+az webapp list-runtimes --os windows
+```
+
 ## Infrastructure
 
 Note: You will need to adjust the names if you are trying to provision your resources.
