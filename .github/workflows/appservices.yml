@@ -171,6 +171,8 @@ jobs:
       - name: App Service down
         shell: pwsh
         run: |
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.dotnet-version }}"
           az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
 
   publish-node-versions:
@@ -255,6 +257,8 @@ jobs:
       - name: App Service down
         shell: pwsh
         run: |
+          $platform = "${{ matrix.platform }}"
+          $version = "${{ matrix.node-version }}"
           az webapp down --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
   publish-summary:
