@@ -91,6 +91,7 @@ jobs:
         dotnet-version: [8, 9]
         platform: [Windows, Linux]
       fail-fast: false
+      max-parallel: 2
 
     steps:
       - name: "checkout"
@@ -184,6 +185,7 @@ jobs:
         node-version: [20, 22]
         platform: [Windows, Linux]
       fail-fast: false
+      max-parallel: 2
 
     steps:
       - name: "checkout"
