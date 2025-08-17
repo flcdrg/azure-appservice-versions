@@ -127,6 +127,10 @@ jobs:
           } else {
             $runtime = "DOTNETCORE:${version}.0"
           }
+
+          # App service may be stopped from last time, so start it up first
+          az webapp start --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
+
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true
 
       - name: "Get version"
@@ -213,6 +217,9 @@ jobs:
           } else {
             $runtime = "NODE:${version}-lts"
           }
+
+          # App service may be stopped from last time, so start it up first
+          az webapp start --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
 
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true
 
