@@ -197,29 +197,36 @@ jobs:
         shell: pwsh
         working-directory: apps/pythonApp
         run: |
-          $platform = "Linux"
+          $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.python-version }}"
           $runtime = "PYTHON|$version"
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-linux-python$version-versions-australiaeast" --os-type Linux --runtime "$runtime" --sku F1 --location australiaeast --track-status true
+          $appservicename = "app-$($platform.ToLower())-python$version-versions-australiasoutheast"
+          Write-Host "Creating web app $appservicename"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true
+
+          # Create GitHub variable
+          echo "APP_SERVICE_NAME=$appservicename" >> $GITHUB_ENV
+
       - name: "Get version"
         shell: pwsh
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
           $version = "${{ matrix.python-version }}"
+          $appservicename = $env:APP_SERVICE_NAME
           $response = $null
           $count = 0
           while ($response -eq $null) {
               try {
                   $count += 1
-                  Write-Host "Getting version for app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
+                  Write-Host "Getting version for $appservicename.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://$appservicename.azurewebsites.net"
               } catch {
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
               if ($count -eq 5) {
-                  Write-Error "Failed to get response from app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
+                  Write-Error "Failed to get response from $appservicename.azurewebsites.net"
                   break
               }
           }
@@ -235,8 +242,10 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ matrix.python-version }}"
-          az webapp delete --name "app-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          $appservicename = $env:APP_SERVICE_NAME
+          az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+
   publish-summary:
     name: Publish Summary
     needs:
