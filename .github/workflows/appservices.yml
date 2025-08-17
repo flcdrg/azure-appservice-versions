@@ -206,7 +206,7 @@ jobs:
           $runtime = "PYTHON|${{ matrix.python-version }}"
           $appservicename = "app-$($platform)-python$version-versions-australiasoutheast"
           Write-Host "Creating web app $appservicename"
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true --plan "appsp-$($platform)-python$version-versions-australiasoutheast"
 
           # Create GitHub variable
           echo "APP_SERVICE_NAME=$appservicename" >> $GITHUB_ENV
