@@ -1,0 +1,39 @@
+# Build Python application
+
+on:
+  pull_request:
+    paths:
+      - 'apps/pythonApp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          cache-dependency-path: ./apps/pythonApp/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        working-directory: ./apps/pythonApp
+
+      - name: Lint app.py
+        run: python -m py_compile app.py
+        working-directory: ./apps/pythonApp
+
+      - name: Run app (smoke test)
+        run: |
+          python app.py &
+          sleep 5
+          curl http://localhost:8000/
+        working-directory: ./apps/pythonApp
