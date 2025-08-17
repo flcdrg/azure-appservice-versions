@@ -249,35 +249,83 @@ jobs:
           }
           $md | Out-File -FilePath $Env:GITHUB_STEP_SUMMARY -Encoding utf8
 
-          # Build HTML table for index.html using single-quoted here-string for YAML compatibility
-          $html = @'
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Azure App Service runtime versions</title>
-            <style>
-              table { border-collapse: collapse; width: 100%; }
-              th, td { border: 1px solid #ddd; padding: 8px; }
-              th { background-color: #f2f2f2; }
-            </style>
-          </head>
-          <body>
-          <h1>Azure App Service runtime versions</h1>
-          <p>This page lists the current runtime versions for Azure App Service.</p>
-          <table>
-            <tr><th>Platform</th><th>Framework</th><th>Version</th><th>Actual Version</th></tr>
-          '@
+
+          # Build HTML table for index.html, line by line, with ARIA sortable table markup and JS
+          $htmlLines = @()
+          $htmlLines += '<!DOCTYPE html>'
+          $htmlLines += '<html lang="en">'
+          $htmlLines += '<head>'
+          $htmlLines += '  <meta charset="UTF-8">'
+          $htmlLines += '  <title>App Service Versions</title>'
+          $htmlLines += '  <style>'
+          $htmlLines += '    table { border-collapse: collapse; width: 100%; }'
+          $htmlLines += '    th, td { border: 1px solid #ddd; padding: 8px; }'
+          $htmlLines += '    th { background-color: #f2f2f2; cursor: pointer; }'
+          $htmlLines += '    th[aria-sort]::after { content: " \2195"; }'
+          $htmlLines += '    th[aria-sort="ascending"]::after { content: " \25B2"; }'
+          $htmlLines += '    th[aria-sort="descending"]::after { content: " \25BC"; }'
+          $htmlLines += '  </style>'
+          $htmlLines += '</head>'
+          $htmlLines += '<body>'
+          $htmlLines += '  <h1>Azure App Service Versions</h1>'
+          $htmlLines += '  <p>This page lists the current runtime versions for Azure App Service.</p>'
+          $htmlLines += '  <table id="sortable-table" aria-label="Azure App Service Versions" role="table">'
+          $htmlLines += '    <thead>'
+          $htmlLines += '      <tr>'
+          $htmlLines += '        <th role="columnheader" aria-sort="none" tabindex="0">Platform</th>'
+          $htmlLines += '        <th role="columnheader" aria-sort="none" tabindex="0">Framework</th>'
+          $htmlLines += '        <th role="columnheader" aria-sort="none" tabindex="0">Version</th>'
+          $htmlLines += '        <th role="columnheader" aria-sort="none" tabindex="0">Actual Version</th>'
+          $htmlLines += '      </tr>'
+          $htmlLines += '    </thead>'
+          $htmlLines += '    <tbody>'
           foreach ($row in $rows) {
-            $html += "  <tr><td>$($row.platform)</td><td>$($row.framework)</td><td>$($row.version)</td><td>$($row.actualVersion)</td></tr>`n"
+            $htmlLines += "      <tr><td>$($row.platform)</td><td>$($row.framework)</td><td>$($row.version)</td><td>$($row.actualVersion)</td></tr>"
           }
-          $html += "</table>\n"
-          $html += "<p>Last updated $(Get-Date -Format 'O')</p>"
-          $html += "<p>Created by [David Gardiner](https://david.gardiner.net.au)</p>"
-          $html += "</body>\n</html>"
+          $htmlLines += '    </tbody>'
+          $htmlLines += '  </table>'
+          $htmlLines += '  <script>'
+          $htmlLines += '    // Sortable table script based on W3C ARIA example'
+          $htmlLines += '    document.addEventListener("DOMContentLoaded", function() {'
+          $htmlLines += '      const table = document.getElementById("sortable-table");'
+          $htmlLines += '      const headers = table.querySelectorAll("th");'
+          $htmlLines += '      let sortColumn = -1;'
+          $htmlLines += '      let sortDirection = 1; // 1 = ascending, -1 = descending'
+          $htmlLines += '      headers.forEach((header, i) => {'
+          $htmlLines += '        header.addEventListener("click", () => sortTable(i));'
+          $htmlLines += '        header.addEventListener("keydown", (e) => {'
+          $htmlLines += '          if (e.key === "Enter" || e.key === " ") sortTable(i);'
+          $htmlLines += '        });'
+          $htmlLines += '      });'
+          $htmlLines += '      function sortTable(col) {'
+          $htmlLines += '        const tbody = table.querySelector("tbody");'
+          $htmlLines += '        const rows = Array.from(tbody.querySelectorAll("tr"));'
+          $htmlLines += '        if (sortColumn === col) {'
+          $htmlLines += '          sortDirection *= -1;'
+          $htmlLines += '        } else {'
+          $htmlLines += '          sortColumn = col; sortDirection = 1;'
+          $htmlLines += '        }'
+          $htmlLines += '        headers.forEach((h, idx) => {'
+          $htmlLines += '          h.setAttribute("aria-sort", idx === col ? (sortDirection === 1 ? "ascending" : "descending") : "none");'
+          $htmlLines += '        });'
+          $htmlLines += '        rows.sort((a, b) => {'
+          $htmlLines += '          let t1 = a.children[col].textContent.trim();'
+          $htmlLines += '          let t2 = b.children[col].textContent.trim();'
+          $htmlLines += '          if (!isNaN(t1) && !isNaN(t2)) { t1 = +t1; t2 = +t2; }'
+          $htmlLines += '          return t1 > t2 ? sortDirection : t1 < t2 ? -sortDirection : 0;'
+          $htmlLines += '        });'
+          $htmlLines += '        rows.forEach(row => tbody.appendChild(row));'
+          $htmlLines += '      }'
+          $htmlLines += '    });'
+          $htmlLines += '  </script>'
+          $htmlLines += "  <p>Last updated $(Get-Date -Format 'O')</p>"
+          $htmlLines += "  <p>Created by <a href='https://david.gardiner.net.au'>David Gardiner</a></p>"
+          $htmlLines += '</body>'
+          $htmlLines += '</html>'
 
           # Create web directory
           New-Item -ItemType Directory -Path "web" -Force
-          $html | Out-File -FilePath "web/index.html" -Encoding utf8
+          $htmlLines | Set-Content -Path "web/index.html" -Encoding utf8
 
       - name: Web files
         run: |
