@@ -216,8 +216,16 @@ jobs:
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
+          Get-ChildItem env: | Sort-Object
+
           $version = "${{ matrix.python-version }}"
           $appservicename = $env:APP_SERVICE_NAME
+
+          if ($appservicename -eq $null) {
+              Write-Error "APP_SERVICE_NAME environment variable is not set."
+              exit 1
+          }
+
           $response = $null
           $count = 0
           while ($response -eq $null) {
