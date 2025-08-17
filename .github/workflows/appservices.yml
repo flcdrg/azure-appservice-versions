@@ -1,5 +1,6 @@
 name: Build and Deploy
 
+# Max 10 free app service plans per location, so use new locations for new runtimes
 on:
   push:
     branches: ["main"]
@@ -28,14 +29,11 @@ jobs:
         dotnet-version: [8, 9]
         platform: [Windows, Linux]
       fail-fast: false
-      #max-parallel: 2
-
     steps:
       - name: "checkout"
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
@@ -43,42 +41,31 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
-
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/dotnetApp
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-
-          # Edit dotnetApp.csproj
           $csprojPath = "dotnetApp.csproj"
           $csprojContent = Get-Content -Path $csprojPath
           $csprojContent = $csprojContent -replace '<TargetFramework>.*<\/TargetFramework>', "<TargetFramework>net${version}.0</TargetFramework>"
           $csprojContent | Set-Content -Path $csprojPath
-
           Get-Content $csprojPath
-
           if ($platform -eq 'Windows') {
             $runtime = "dotnet:$version"
           } else {
             $runtime = "DOTNETCORE:${version}.0"
           }
-
-          # App service may be stopped from last time, so start it up first
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-australiaeast"
-
       - name: "Get version"
         shell: pwsh
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
-
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-
           $response = $null
-
           $count = 0
           while ($response -eq $null) {
               try {
@@ -89,38 +76,30 @@ jobs:
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
-
               if ($count -eq 5) {
                   Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-australiaeast.azurewebsites.net"
                   break
               }
           }
-
           $actualVersion = $response.Trim()
-          Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
-
           $json = @{ platform = $platform; framework = ".NET"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
-
       - name: "Upload version"
         uses: actions/upload-artifact@v4
         with:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.json
-
-      # Stop app service once we have the info to save cpu etc
       - name: App Service plan delete
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-
           az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
 
           az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-node-versions:
-    name: Publish Versions
+    name: Publish Node Versions
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
@@ -129,13 +108,11 @@ jobs:
         platform: [Windows, Linux]
       fail-fast: false
       max-parallel: 2
-
     steps:
       - name: "checkout"
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-
       - name: "Login via Azure CLI"
         uses: azure/login@v2
         with:
@@ -143,34 +120,26 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
-
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/nodeApp
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-
           if ($platform -eq 'Windows') {
             $runtime = "NODE:${version}LTS"
           } else {
             $runtime = "NODE:${version}-lts"
           }
-
-          # App service may be stopped from last time, so start it up first
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-australiaeast"
-
       - name: "Get version"
         shell: pwsh
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
-
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-
           $response = $null
-
           $count = 0
           while ($response -eq $null) {
               try {
@@ -181,26 +150,19 @@ jobs:
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
-
               if ($count -eq 5) {
                   Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-australiaeast.azurewebsites.net"
                   break
               }
           }
-
           $actualVersion = $response.Trim()
-          Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
-
           $json = @{ platform = $platform; framework = "Node"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
-
       - name: "Upload version"
         uses: actions/upload-artifact@v4
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
           path: output.json
-
-      # Stop app service once we have the info to save cpu etc
       - name: App Service stop
         shell: pwsh
         run: |
@@ -209,13 +171,80 @@ jobs:
           az webapp delete --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
+  # Use australiasoutheast for location
+  publish-python-versions:
+    name: Publish Python Versions
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        python-version: [3.9]
+        platform: [Linux]
+      fail-fast: false
+    steps:
+      - name: "checkout"
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: "Login via Azure CLI"
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+      - name: "Publish app"
+        shell: pwsh
+        working-directory: apps/pythonApp
+        run: |
+          $platform = "Linux"
+          $version = "${{ matrix.python-version }}"
+          $runtime = "PYTHON|$version"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-linux-python$version-versions-australiaeast" --os-type Linux --runtime "$runtime" --sku F1 --location australiaeast --track-status true
+      - name: "Get version"
+        shell: pwsh
+        id: get-version
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "${{ matrix.python-version }}"
+          $response = $null
+          $count = 0
+          while ($response -eq $null) {
+              try {
+                  $count += 1
+                  Write-Host "Getting version for app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
+              } catch {
+                  Write-Host "Retrying in 5 seconds..."
+                  Start-Sleep -Seconds 5
+              }
+              if ($count -eq 5) {
+                  Write-Error "Failed to get response from app-linux-python$version-versions-australiasoutheast.azurewebsites.net"
+                  break
+              }
+          }
+          $actualVersion = $response.Trim()
+          $json = @{ platform = "Linux"; framework = "Python"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
+          $json | Set-Content -Path output.json
+      - name: "Upload version"
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-Linux-${{ matrix.python-version }}
+          path: output.json
+      - name: App Service stop
+        shell: pwsh
+        run: |
+          $version = "${{ matrix.python-version }}"
+          az webapp delete --name "app-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
   publish-summary:
     name: Publish Summary
     needs:
       - publish-node-versions
       - publish-dotnet-versions
-
+      - publish-python-versions
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
