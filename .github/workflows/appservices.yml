@@ -202,7 +202,7 @@ jobs:
         working-directory: apps/pythonApp
         run: |
           $platform = "${{ matrix.platform }}".ToLower()
-          $version = "${{ matrix.python-version }}" -replace ".", "" # Can't have dots in resource name
+          $version = "${{ matrix.python-version }}".Replace(".", "") # Can't have dots in resource name
           $runtime = "PYTHON|$version"
           $appservicename = "app-$($platform)-python$version-versions-australiasoutheast"
           Write-Host "Creating web app $appservicename"
@@ -245,7 +245,7 @@ jobs:
       - name: App Service stop
         shell: pwsh
         run: |
-          $version = "${{ matrix.python-version }}" -replace ".", ""
+          $version = "${{ matrix.python-version }}".Replace(".", "")
           $appservicename = $env:APP_SERVICE_NAME
           az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
