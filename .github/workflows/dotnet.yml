@@ -1,0 +1,21 @@
+# build .NET application
+
+on:
+  pull_request:
+    paths:
+      - 'apps/dotnetApp/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+
+      - name: Build
+        run: dotnet build
+        working-directory: ./apps/dotnetApp

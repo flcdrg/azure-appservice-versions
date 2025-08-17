@@ -1,0 +1,29 @@
+# Build Node.js application
+
+on:
+  pull_request:
+    paths:
+      - 'apps/nodeApp/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ./apps/nodeApp/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./apps/nodeApp
+
+      - name: Build
+        run: npm run build
+        working-directory: ./apps/nodeApp
