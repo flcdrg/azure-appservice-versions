@@ -16,76 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-bicep:
-    name: Build Bicep
-    runs-on: ubuntu-latest
-    if: !(always())
-    steps:
-      - name: "Checkout GitHub Action"
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-
-      - name: "Login via Azure CLI"
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Test
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
-          template: ./bicep/main.bicep
-          failOnStdErr: false
-          deploymentMode: Complete
-          additionalArguments: --what-if
-          scope: resourcegroup
-
-      - name: Archive Bicep
-        if: success() && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bicep
-          path: "./bicep"
-
-  deploy-bicep:
-    name: Deploy Bicep
-    needs:
-      - build-bicep
-    runs-on: ubuntu-latest
-    environment: dev
-    #if: github.ref == 'refs/heads/main'
-    if: !(always())
-
-    steps:
-      - name: "Download Artifact"
-        uses: actions/download-artifact@v5
-        with:
-          name: bicep
-          path: "./bicep"
-
-      - name: "Login via Azure CLI"
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: deploy
-        uses: azure/arm-deploy@v2
-        id: deploy
-        with:
-          resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
-          template: ./bicep/main.bicep
-          deploymentMode: Complete
-          failOnStdErr: false
-          scope: resourcegroup
-
   publish-dotnet-versions:
     name: Publish .NET Versions
-    #needs: deploy-bicep
     runs-on: ubuntu-latest
 
     strategy:
@@ -180,11 +112,12 @@ jobs:
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
 
+          az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+
           az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-node-versions:
     name: Publish Versions
-    needs: deploy-bicep
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -269,6 +202,7 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
+          az webapp delete --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-summary:
