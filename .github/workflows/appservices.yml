@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0" # Every Sunday at midnight UTC
 
 permissions:
   id-token: write
@@ -256,8 +258,9 @@ jobs:
           $htmlLines += '<html lang="en">'
           $htmlLines += '<head>'
           $htmlLines += '  <meta charset="UTF-8">'
-          $htmlLines += '  <title>App Service Versions</title>'
+          $htmlLines += '  <title>Azure App Service runtime versions</title>'
           $htmlLines += '  <style>'
+          $htmlLines += '    body { font-family: Arial, sans-serif; }'
           $htmlLines += '    table { border-collapse: collapse; width: 100%; }'
           $htmlLines += '    th, td { border: 1px solid #ddd; padding: 8px; }'
           $htmlLines += '    th { background-color: #f2f2f2; cursor: pointer; }'
@@ -267,9 +270,9 @@ jobs:
           $htmlLines += '  </style>'
           $htmlLines += '</head>'
           $htmlLines += '<body>'
-          $htmlLines += '  <h1>Azure App Service Versions</h1>'
-          $htmlLines += '  <p>This page lists the current runtime versions for Azure App Service.</p>'
-          $htmlLines += '  <table id="sortable-table" aria-label="Azure App Service Versions" role="table">'
+          $htmlLines += '  <h1>Azure App Service runtime versions</h1>'
+          $htmlLines += '  <p>This page lists the current runtime versions provided by newly provisioned for Azure App Services resources.</p>'
+          $htmlLines += '  <table id="sortable-table" aria-label="Azure App Service runtime versions" role="table">'
           $htmlLines += '    <thead>'
           $htmlLines += '      <tr>'
           $htmlLines += '        <th role="columnheader" aria-sort="none" tabindex="0">Platform</th>'
