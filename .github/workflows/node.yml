@@ -21,9 +21,5 @@ jobs:
           cache-dependency-path: ./apps/nodeApp/package-lock.json
 
       - name: Install dependencies
-        run: npm install
-        working-directory: ./apps/nodeApp
-
-      - name: Build
-        run: npm run build
+        run: npm ci
         working-directory: ./apps/nodeApp
