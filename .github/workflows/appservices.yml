@@ -216,7 +216,6 @@ jobs:
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
-          Get-ChildItem env: | Sort-Object
 
           $version = "${{ matrix.python-version }}"
           $appservicename = $env:APP_SERVICE_NAME
@@ -243,6 +242,7 @@ jobs:
               }
           }
           $actualVersion = $response.Trim()
+          Write-Host "Actual version: $actualVersion"
           $json = @{ platform = "Linux"; framework = "Python"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
@@ -250,7 +250,9 @@ jobs:
         with:
           name: output-Linux-${{ matrix.python-version }}
           path: output.json
-      - name: App Service stop
+
+      - name: App Service delete
+        continue-on-error: true
         shell: pwsh
         run: |
           $version = "${{ matrix.python-version }}".Replace(".", "")
