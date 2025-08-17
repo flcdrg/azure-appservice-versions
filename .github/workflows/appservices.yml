@@ -209,7 +209,7 @@ jobs:
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true --plan "appsp-$($platform)-python$version-versions-australiasoutheast"
 
           # Create GitHub variable
-          echo "APP_SERVICE_NAME=$appservicename" >> $GITHUB_ENV
+          echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
 
       - name: "Get version"
         shell: pwsh
