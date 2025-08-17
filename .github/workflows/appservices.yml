@@ -21,6 +21,7 @@ jobs:
   publish-dotnet-versions:
     name: Publish .NET Versions
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     strategy:
       matrix:
@@ -121,6 +122,7 @@ jobs:
   publish-node-versions:
     name: Publish Versions
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
       matrix:
         node-version: [20, 22]
