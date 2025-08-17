@@ -271,7 +271,7 @@ jobs:
           $htmlLines += '</head>'
           $htmlLines += '<body>'
           $htmlLines += '  <h1>Azure App Service runtime versions</h1>'
-          $htmlLines += '  <p>This page lists the current runtime versions provided by newly provisioned for Azure App Services resources.</p>'
+          $htmlLines += '  <p>This page lists the current runtime versions provided by newly provisioned for <a href="https://learn.microsoft.com/azure/app-service/overview?WT.mc_id=DOP-MVP-5001655">Azure App Services</a> resources.</p>'
           $htmlLines += '  <table id="sortable-table" aria-label="Azure App Service runtime versions" role="table">'
           $htmlLines += '    <thead>'
           $htmlLines += '      <tr>'
@@ -323,6 +323,7 @@ jobs:
           $htmlLines += '  </script>'
           $htmlLines += "  <p>Last updated $(Get-Date -Format 'O')</p>"
           $htmlLines += "  <p>Created by <a href='https://david.gardiner.net.au'>David Gardiner</a></p>"
+          $htmlLines += '  <p>Source code available on <a href="https://github.com/flcdrg/azure-appservice-versions">GitHub</a></p>'
           $htmlLines += '</body>'
           $htmlLines += '</html>'
 
