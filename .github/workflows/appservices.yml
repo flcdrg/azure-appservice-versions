@@ -19,6 +19,7 @@ jobs:
   build-bicep:
     name: Build Bicep
     runs-on: ubuntu-latest
+    if: !(always())
     steps:
       - name: "Checkout GitHub Action"
         uses: actions/checkout@v5
@@ -55,7 +56,8 @@ jobs:
       - build-bicep
     runs-on: ubuntu-latest
     environment: dev
-    if: github.ref == 'refs/heads/main'
+    #if: github.ref == 'refs/heads/main'
+    if: !(always())
 
     steps:
       - name: "Download Artifact"
@@ -83,7 +85,7 @@ jobs:
 
   publish-dotnet-versions:
     name: Publish .NET Versions
-    needs: deploy-bicep
+    #needs: deploy-bicep
     runs-on: ubuntu-latest
 
     strategy:
@@ -91,7 +93,7 @@ jobs:
         dotnet-version: [8, 9]
         platform: [Windows, Linux]
       fail-fast: false
-      max-parallel: 2
+      #max-parallel: 2
 
     steps:
       - name: "checkout"
@@ -129,9 +131,7 @@ jobs:
           }
 
           # App service may be stopped from last time, so start it up first
-          az webapp start --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
-
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-australiaeast"
 
       - name: "Get version"
         shell: pwsh
@@ -164,21 +164,23 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
 
-          "| $platform | .NET $version | $actualVersion |" > output.txt
+          $json = @{ platform = $platform; framework = ".NET"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
+          $json | Set-Content -Path output.json
 
       - name: "Upload version"
         uses: actions/upload-artifact@v4
         with:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
-          path: output.txt
+          path: output.json
 
       # Stop app service once we have the info to save cpu etc
-      - name: App Service stop
+      - name: App Service plan delete
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-          az webapp stop --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiaeast"
+
+          az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-node-versions:
     name: Publish Versions
@@ -219,9 +221,7 @@ jobs:
           }
 
           # App service may be stopped from last time, so start it up first
-          az webapp start --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
-
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast" --os-type $platform --runtime "$runtime" --sku F1 --location australiaeast --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-australiaeast"
 
       - name: "Get version"
         shell: pwsh
@@ -254,13 +254,14 @@ jobs:
           $actualVersion = $response.Trim()
           Write-Output "$kuduApiBaseUrl $($version): $actualVersion"
 
-          "| $platform | Node $version | $actualVersion |" > output.txt
+          $json = @{ platform = $platform; framework = "Node"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
+          $json | Set-Content -Path output.json
 
       - name: "Upload version"
         uses: actions/upload-artifact@v4
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
-          path: output.txt
+          path: output.json
 
       # Stop app service once we have the info to save cpu etc
       - name: App Service stop
@@ -268,7 +269,7 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-          az webapp stop --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-australiaeast"
+          az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-australiaeast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-summary:
     name: Publish Summary
@@ -293,30 +294,52 @@ jobs:
         with:
           path: .
 
-      - name: Dump needs context
+      - name: Build summary and HTML
         shell: pwsh
         run: |
-          "| Platform | Framework | Actual Version |" >> $Env:GITHUB_STEP_SUMMARY
-          "|----------|-----------|----------------|" >> $Env:GITHUB_STEP_SUMMARY
+          $jsonFiles = Get-ChildItem -Recurse -Filter *.json
+          $rows = @()
+          foreach ($file in $jsonFiles) {
+            $obj = Get-Content $file.FullName | ConvertFrom-Json
+            $rows += $obj
+          }
 
-          gci -Recurse
+          # Sort rows for consistent output
+          $rows = $rows | Sort-Object platform, framework, version
 
-          Get-ChildItem -Recurse *.txt | Get-Content >> $Env:GITHUB_STEP_SUMMARY
+          # Build Markdown table for summary
+          $md = "| Platform | Framework | Version | Actual Version |`n"
+          $md += "|----------|-----------|---------|----------------|`n"
+          foreach ($row in $rows) {
+            $md += "| $($row.platform) | $($row.framework) | $($row.version) | $($row.actualVersion) |`n"
+          }
+          $md | Out-File -FilePath $Env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+          # Build HTML table for index.html using single-quoted here-string for YAML compatibility
+          $html = @'
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>App Service Versions</title>
+            <style>
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; }
+              th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+          <h1>App Service Versions</h1>
+          <table>
+            <tr><th>Platform</th><th>Framework</th><th>Version</th><th>Actual Version</th></tr>
+          '@
+          foreach ($row in $rows) {
+            $html += "  <tr><td>$($row.platform)</td><td>$($row.framework)</td><td>$($row.version)</td><td>$($row.actualVersion)</td></tr>`n"
+          }
+          $html += "</table>\n</body>\n</html>"
 
           # Create web directory
-          New-Item -ItemType Directory -Path "web"
-
-          Copy-Item $Env:GITHUB_STEP_SUMMARY -Destination web/index.md
-
-      - name: Convert Markdown
-        uses: jd-solanki/gh-action-md-to-html@v1.1.0
-        with:
-          # Stringified Array of [Array of source md file & file to generate] (i.e. [ ["index.md", "index.html"], ["changelog.md", "changelog.html"]])
-          files: '[ ["web/index.md", "web/index.html"] ]'
-          # Github Markdown theme to use. Options: "Auto", "Light" or "Dark"
-          theme: # optional, default is Auto
-          # Boolean value which will tell action to log the action it performs. Useful for debugging.
-          # debug: # optional
+          New-Item -ItemType Directory -Path "web" -Force
+          $html | Out-File -FilePath "web/index.html" -Encoding utf8
 
       - name: Web files
         run: |
