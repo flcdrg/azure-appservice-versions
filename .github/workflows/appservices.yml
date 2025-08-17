@@ -221,7 +221,7 @@ jobs:
       contents: read
       actions: read
       pages: write
-
+      id-token: write
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v5
@@ -254,7 +254,7 @@ jobs:
           <html>
           <head>
             <meta charset="UTF-8">
-            <title>App Service Versions</title>
+            <title>Azure App Service runtime versions</title>
             <style>
               table { border-collapse: collapse; width: 100%; }
               th, td { border: 1px solid #ddd; padding: 8px; }
@@ -262,14 +262,18 @@ jobs:
             </style>
           </head>
           <body>
-          <h1>App Service Versions</h1>
+          <h1>Azure App Service runtime versions</h1>
+          <p>This page lists the current runtime versions for Azure App Service.</p>
           <table>
             <tr><th>Platform</th><th>Framework</th><th>Version</th><th>Actual Version</th></tr>
           '@
           foreach ($row in $rows) {
             $html += "  <tr><td>$($row.platform)</td><td>$($row.framework)</td><td>$($row.version)</td><td>$($row.actualVersion)</td></tr>`n"
           }
-          $html += "</table>\n</body>\n</html>"
+          $html += "</table>\n"
+          $html += "<p>Last updated $(Get-Date -Format 'O')</p>"
+          $html += "<p>Created by [David Gardiner](https://david.gardiner.net.au)</p>"
+          $html += "</body>\n</html>"
 
           # Create web directory
           New-Item -ItemType Directory -Path "web" -Force
@@ -287,7 +291,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
           path: "web"
 
       - name: Deploy to GitHub Pages
