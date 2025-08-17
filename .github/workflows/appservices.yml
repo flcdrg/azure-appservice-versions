@@ -282,6 +282,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v5
