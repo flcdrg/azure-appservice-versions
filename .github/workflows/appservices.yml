@@ -178,11 +178,11 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - 3.9
-          - 3.10
-          - 3.11
-          - 3.12
-          - 3.13
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
         platform: [Linux]
 
     steps:
@@ -201,10 +201,10 @@ jobs:
         shell: pwsh
         working-directory: apps/pythonApp
         run: |
-          $platform = "${{ matrix.platform }}"
+          $platform = "${{ matrix.platform }}".ToLower()
           $version = "${{ matrix.python-version }}" -replace ".", "" # Can't have dots in resource name
           $runtime = "PYTHON|$version"
-          $appservicename = "app-$($platform.ToLower())-python$version-versions-australiasoutheast"
+          $appservicename = "app-$($platform)-python$version-versions-australiasoutheast"
           Write-Host "Creating web app $appservicename"
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true
 
