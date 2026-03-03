@@ -91,14 +91,42 @@ jobs:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.json
       - name: App Service plan delete
-        continue-on-error: true
+        continue-on-error: true        
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-          az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          function Invoke-AzWithRetry {
+            param(
+              [scriptblock]$Command,
+              [string]$Description
+            )
 
-          az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              Write-Host "$Description (attempt $attempt/3)"
+              & $Command
+
+              if ($LASTEXITCODE -eq 0) {
+                return
+              }
+
+              if ($attempt -eq 3) {
+                throw "$Description failed after 3 attempts"
+              }
+
+              $delaySeconds = Get-Random -Minimum 5 -Maximum 21
+              Write-Host "$Description failed with exit code $LASTEXITCODE. Retrying in $delaySeconds seconds..."
+              Start-Sleep -Seconds $delaySeconds
+            }
+          }
+
+          Invoke-AzWithRetry -Description "Delete web app" -Command {
+            az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          }
+
+          Invoke-AzWithRetry -Description "Delete app service plan" -Command {
+            az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          }
 
   publish-node-versions:
     name: Publish Node Versions
@@ -174,8 +202,37 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-          az webapp delete --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
-          az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          function Invoke-AzWithRetry {
+            param(
+              [scriptblock]$Command,
+              [string]$Description
+            )
+
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              Write-Host "$Description (attempt $attempt/3)"
+              & $Command
+
+              if ($LASTEXITCODE -eq 0) {
+                return
+              }
+
+              if ($attempt -eq 3) {
+                throw "$Description failed after 3 attempts"
+              }
+
+              $delaySeconds = Get-Random -Minimum 5 -Maximum 21
+              Write-Host "$Description failed with exit code $LASTEXITCODE. Retrying in $delaySeconds seconds..."
+              Start-Sleep -Seconds $delaySeconds
+            }
+          }
+
+          Invoke-AzWithRetry -Description "Delete web app" -Command {
+            az webapp delete --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          }
+
+          Invoke-AzWithRetry -Description "Delete app service plan" -Command {
+            az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          }
 
   # Use australiasoutheast for location
   publish-python-versions:
@@ -265,8 +322,37 @@ jobs:
         run: |
           $version = "${{ matrix.python-version }}".Replace(".", "")
           $appservicename = $env:APP_SERVICE_NAME
-          az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
-          az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          function Invoke-AzWithRetry {
+            param(
+              [scriptblock]$Command,
+              [string]$Description
+            )
+
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              Write-Host "$Description (attempt $attempt/3)"
+              & $Command
+
+              if ($LASTEXITCODE -eq 0) {
+                return
+              }
+
+              if ($attempt -eq 3) {
+                throw "$Description failed after 3 attempts"
+              }
+
+              $delaySeconds = Get-Random -Minimum 5 -Maximum 21
+              Write-Host "$Description failed with exit code $LASTEXITCODE. Retrying in $delaySeconds seconds..."
+              Start-Sleep -Seconds $delaySeconds
+            }
+          }
+
+          Invoke-AzWithRetry -Description "Delete web app" -Command {
+            az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          }
+
+          Invoke-AzWithRetry -Description "Delete app service plan" -Command {
+            az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          }
 
   publish-summary:
     name: Publish Summary
