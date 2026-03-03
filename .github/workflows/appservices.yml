@@ -44,6 +44,7 @@ jobs:
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/dotnetApp
+        continue-on-error: true
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
@@ -57,7 +58,7 @@ jobs:
           } else {
             $runtime = "DOTNETCORE:${version}.0"
           }
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-eastus2" --os-type $platform --runtime "$runtime" --sku F1 --location eastus2 --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-eastus2"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --os-type $platform --runtime "$runtime" --sku F1 --location australiacentral --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral"
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -70,14 +71,14 @@ jobs:
           while ($response -eq $null) {
               try {
                   $count += 1
-                  Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-eastus2.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-eastus2.azurewebsites.net"
+                  Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
               } catch {
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
               if ($count -eq 5) {
-                  Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-eastus2.azurewebsites.net"
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
                   break
               }
           }
@@ -95,9 +96,9 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
-          az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-eastus2" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
 
-          az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-eastus2" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   publish-node-versions:
     name: Publish Node Versions
@@ -131,7 +132,7 @@ jobs:
           } else {
             $runtime = "NODE:${version}-lts"
           }
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-westus3" --os-type $platform --runtime "$runtime" --sku F1 --location westus3 --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-westus3"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --os-type $platform --runtime "$runtime" --sku F1 --location newzealandnorth --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth"
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -144,14 +145,14 @@ jobs:
           while ($response -eq $null) {
               try {
                   $count += 1
-                  Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-westus3.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-westus3.azurewebsites.net"
+                  Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
               } catch {
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
               if ($count -eq 5) {
-                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-westus3.azurewebsites.net"
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
                   break
               }
           }
@@ -169,8 +170,8 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-          az webapp delete --name "app-$($platform.ToLower())-node$version-versions-westus3" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
-          az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-westus3" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          az webapp delete --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
 
   # Use australiasoutheast for location
   publish-python-versions:

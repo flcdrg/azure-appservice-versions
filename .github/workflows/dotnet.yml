@@ -3,9 +3,12 @@
 on:
   pull_request:
     paths:
-      - 'apps/dotnetApp/**'
-      - '.github/workflows/dotnet.yml'
+      - "apps/dotnetApp/**"
+      - ".github/workflows/dotnet.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
