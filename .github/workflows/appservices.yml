@@ -90,6 +90,7 @@ jobs:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.json
       - name: App Service plan delete
+        continue-on-error: true
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
@@ -162,7 +163,8 @@ jobs:
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
           path: output.json
-      - name: App Service stop
+      - name: App Service delete
+        continue-on-error: true
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"

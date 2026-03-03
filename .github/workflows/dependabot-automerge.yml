@@ -1,6 +1,8 @@
 name: Dependabot auto-merge
 on: pull_request
 
+# Based on https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automating-dependabot-with-github-actions#enabling-automerge-on-a-pull-request
+
 permissions:
   contents: write
   pull-requests: write
@@ -8,15 +10,29 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' && github.repository == 'flcdrg/azure-appservice-versions' }}
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'azure-appservice-versions'
     steps:
       - name: Dependabot metadata
         id: metadata
         uses: dependabot/fetch-metadata@v2.5.0
+        continue-on-error: true # Handle 'PR is not from Dependabot, nothing to do' error quietly
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Enable auto-merge for Dependabot PRs
-        if: ${{steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'}}
+        if: ${{
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/upload-artifact') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/download-artifact') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/checkout') ||
+          contains(steps.metadata.outputs.dependency-names, 'azure/login') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/configure-pages') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/upload-pages-artifact') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/deploy-pages') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/setup-dotnet') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/setup-node') ||
+          contains(steps.metadata.outputs.dependency-names, 'actions/setup-python')
+          }}
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
