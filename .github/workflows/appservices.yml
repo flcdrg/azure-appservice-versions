@@ -85,7 +85,7 @@ jobs:
           $json = @{ platform = $platform; framework = ".NET"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.json
@@ -159,7 +159,7 @@ jobs:
           $json = @{ platform = $platform; framework = "Node"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
           path: output.json
@@ -248,7 +248,7 @@ jobs:
           $json = @{ platform = "Linux"; framework = "Python"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: output-Linux-${{ matrix.python-version }}
           path: output.json
