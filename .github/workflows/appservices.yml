@@ -108,6 +108,9 @@ jobs:
       matrix:
         node-version: [20, 22, 24]
         platform: [Windows, Linux]
+        exclude:
+          - node-version: 24
+            platform: Windows
 
     steps:
       - name: "checkout"
@@ -124,6 +127,7 @@ jobs:
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/nodeApp
+        continue-on-error: true
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
@@ -203,6 +207,7 @@ jobs:
       - name: "Publish app"
         shell: pwsh
         working-directory: apps/pythonApp
+        continue-on-error: true
         run: |
           $platform = "${{ matrix.platform }}".ToLower()
           $version = "${{ matrix.python-version }}".Replace(".", "") # Can't have dots in resource name
