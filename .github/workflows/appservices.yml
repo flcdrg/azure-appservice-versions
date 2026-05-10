@@ -22,7 +22,7 @@ jobs:
   publish-dotnet-versions:
     name: Publish .NET Versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
     strategy:
       matrix:
@@ -131,7 +131,7 @@ jobs:
   publish-node-versions:
     name: Publish Node Versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     strategy:
       matrix:
         node-version: [20, 22, 24]
@@ -238,7 +238,7 @@ jobs:
   publish-python-versions:
     name: Publish Python Versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     strategy:
       matrix:
         python-version:
