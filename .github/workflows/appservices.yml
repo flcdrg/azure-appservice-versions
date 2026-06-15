@@ -13,6 +13,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  azureLocation: australiacentral
+
 # Ensure only one workflow run at a time per branch
 concurrency:
   group: appservices-pipeline-${{ github.ref == 'refs/heads/main' && 'main' || github.ref }}
@@ -58,7 +61,7 @@ jobs:
           } else {
             $runtime = "DOTNETCORE:${version}.0"
           }
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --os-type $platform --runtime "$runtime" --sku F1 --location australiacentral --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -71,14 +74,14 @@ jobs:
           while ($response -eq $null) {
               try {
                   $count += 1
-                  Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
+                  Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
               } catch {
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
               if ($count -eq 5) {
-                  Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-australiacentral.azurewebsites.net"
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   break
               }
           }
@@ -121,17 +124,18 @@ jobs:
           }
 
           Invoke-AzWithRetry -Description "Delete web app" -Command {
-            az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+            az webapp delete --name "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           }
 
           Invoke-AzWithRetry -Description "Delete app service plan" -Command {
-            az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-australiacentral" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+            az appservice plan delete --name "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
           }
 
   publish-node-versions:
     name: Publish Node Versions
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: publish-dotnet-versions
     strategy:
       matrix:
         node-version: [20, 22, 24]
@@ -164,7 +168,7 @@ jobs:
           } else {
             $runtime = "NODE:${version}-lts"
           }
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --os-type $platform --runtime "$runtime" --sku F1 --location newzealandnorth --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -177,14 +181,14 @@ jobs:
           while ($response -eq $null) {
               try {
                   $count += 1
-                  Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
+                  Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
               } catch {
                   Write-Host "Retrying in 5 seconds..."
                   Start-Sleep -Seconds 5
               }
               if ($count -eq 5) {
-                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-newzealandnorth.azurewebsites.net"
+                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   break
               }
           }
@@ -227,18 +231,18 @@ jobs:
           }
 
           Invoke-AzWithRetry -Description "Delete web app" -Command {
-            az webapp delete --name "app-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+            az webapp delete --name "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
           }
 
           Invoke-AzWithRetry -Description "Delete app service plan" -Command {
-            az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-newzealandnorth" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+            az appservice plan delete --name "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
           }
 
-  # Use australiasoutheast for location
   publish-python-versions:
     name: Publish Python Versions
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: publish-node-versions
     strategy:
       matrix:
         python-version:
@@ -269,9 +273,9 @@ jobs:
           $platform = "${{ matrix.platform }}".ToLower()
           $version = "${{ matrix.python-version }}".Replace(".", "") # Can't have dots in resource name
           $runtime = "PYTHON|${{ matrix.python-version }}"
-          $appservicename = "app-$($platform)-python$version-versions-australiasoutheast"
+          $appservicename = "app-$($platform)-python$version-versions-${{ env.azureLocation }}"
           Write-Host "Creating web app $appservicename"
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location australiasoutheast --track-status true --plan "appsp-$($platform)-python$version-versions-australiasoutheast"
+          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform)-python$version-versions-${{ env.azureLocation }}"
 
           # Create GitHub variable
           echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
@@ -351,7 +355,7 @@ jobs:
           }
 
           Invoke-AzWithRetry -Description "Delete app service plan" -Command {
-            az appservice plan delete --name "appsp-linux-python$version-versions-australiasoutheast" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+            az appservice plan delete --name "appsp-linux-python$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
           }
 
   publish-summary:
