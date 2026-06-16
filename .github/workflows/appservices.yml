@@ -62,11 +62,18 @@ jobs:
             $runtime = "DOTNETCORE:${version}.0"
           }
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
+          if ($LASTEXITCODE -eq 0) {
+            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
+          }
       - name: "Get version"
         shell: pwsh
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
+          if ($env:DEPLOY_SUCCESS -ne 'true') {
+              Write-Host "Deployment did not succeed, skipping version check."
+              exit 0
+          }
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
           $response = $null
@@ -77,10 +84,10 @@ jobs:
                   Write-Host "Getting version for app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
               } catch {
-                  Write-Host "Retrying in 5 seconds..."
-                  Start-Sleep -Seconds 5
+                  Write-Host "Retrying in 30 seconds..."
+                  Start-Sleep -Seconds 30
               }
-              if ($count -eq 5) {
+              if ($count -eq 10) {
                   Write-Error "Failed to get response from app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   break
               }
@@ -166,14 +173,21 @@ jobs:
           if ($platform -eq 'Windows') {
             $runtime = "NODE:${version}LTS"
           } else {
-            $runtime = "NODE:${version}-lts"
+            $runtime = "NODE|${version}-lts"
           }
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
+          if ($LASTEXITCODE -eq 0) {
+            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
+          }
       - name: "Get version"
         shell: pwsh
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
+          if ($env:DEPLOY_SUCCESS -ne 'true') {
+              Write-Host "Deployment did not succeed, skipping version check."
+              exit 0
+          }
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
           $response = $null
@@ -184,10 +198,10 @@ jobs:
                   Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
               } catch {
-                  Write-Host "Retrying in 5 seconds..."
-                  Start-Sleep -Seconds 5
+                  Write-Host "Retrying in 30 seconds..."
+                  Start-Sleep -Seconds 30
               }
-              if ($count -eq 5) {
+              if ($count -eq 10) {
                   Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   break
               }
@@ -276,6 +290,9 @@ jobs:
           $appservicename = "app-$($platform)-python$version-versions-${{ env.azureLocation }}"
           Write-Host "Creating web app $appservicename"
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform)-python$version-versions-${{ env.azureLocation }}"
+          if ($LASTEXITCODE -eq 0) {
+            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
+          }
 
           # Create GitHub variable
           echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
@@ -285,6 +302,11 @@ jobs:
         id: get-version
         run: |
           $ErrorActionPreference = "Stop"
+
+          if ($env:DEPLOY_SUCCESS -ne 'true') {
+              Write-Host "Deployment did not succeed, skipping version check."
+              exit 0
+          }
 
           $version = "${{ matrix.python-version }}"
           $appservicename = $env:APP_SERVICE_NAME
@@ -302,10 +324,10 @@ jobs:
                   Write-Host "Getting version for $appservicename.azurewebsites.net"
                   $response = Invoke-RestMethod -Method Get -Uri "https://$appservicename.azurewebsites.net"
               } catch {
-                  Write-Host "Retrying in 5 seconds..."
-                  Start-Sleep -Seconds 5
+                  Write-Host "Retrying in 30 seconds..."
+                  Start-Sleep -Seconds 30
               }
-              if ($count -eq 5) {
+              if ($count -eq 10) {
                   Write-Error "Failed to get response from $appservicename.azurewebsites.net"
                   break
               }
