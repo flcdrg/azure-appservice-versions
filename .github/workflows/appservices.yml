@@ -145,11 +145,11 @@ jobs:
     needs: publish-dotnet-versions
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [22, 24]
         platform: [Windows, Linux]
-        exclude:
-          - node-version: 24
-            platform: Windows
+        # exclude:
+        #   - node-version: 24
+        #     platform: Windows
 
     steps:
       - name: "checkout"
