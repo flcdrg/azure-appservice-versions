@@ -144,7 +144,7 @@ jobs:
   publish-node-versions:
     name: Publish Node Versions
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled() }}
+    if: (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled()
     needs: publish-dotnet-versions
     strategy:
       fail-fast: false
@@ -261,7 +261,7 @@ jobs:
   publish-python-versions:
     name: Publish Python Versions
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled() }}
+    if: (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled()
     needs: publish-node-versions
     strategy:
       fail-fast: false
@@ -397,7 +397,7 @@ jobs:
       - publish-python-versions
     runs-on: ubuntu-latest
 
-    if: ${{ github.ref == 'refs/heads/main' && !cancelled() }}
+    if: github.ref == 'refs/heads/main' && !cancelled()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
