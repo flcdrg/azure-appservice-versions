@@ -28,6 +28,7 @@ jobs:
     if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
     strategy:
+      fail-fast: false
       matrix:
         dotnet-version: [8, 9, 10]
         platform: [Windows, Linux]
@@ -68,6 +69,7 @@ jobs:
       - name: "Get version"
         shell: pwsh
         id: get-version
+        continue-on-error: true
         run: |
           $ErrorActionPreference = "Stop"
           if ($env:DEPLOY_SUCCESS -ne 'true') {
@@ -96,6 +98,7 @@ jobs:
           $json = @{ platform = $platform; framework = ".NET"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
+        if: steps.get-version.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
@@ -141,9 +144,10 @@ jobs:
   publish-node-versions:
     name: Publish Node Versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled()
     needs: publish-dotnet-versions
     strategy:
+      fail-fast: false
       matrix:
         node-version: [22, 24]
         platform: [Windows, Linux]
@@ -182,6 +186,7 @@ jobs:
       - name: "Get version"
         shell: pwsh
         id: get-version
+        continue-on-error: true
         run: |
           $ErrorActionPreference = "Stop"
           if ($env:DEPLOY_SUCCESS -ne 'true') {
@@ -210,6 +215,7 @@ jobs:
           $json = @{ platform = $platform; framework = "Node"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
+        if: steps.get-version.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: output-${{ matrix.platform }}-${{ matrix.node-version}}
@@ -255,9 +261,10 @@ jobs:
   publish-python-versions:
     name: Publish Python Versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && !cancelled()
     needs: publish-node-versions
     strategy:
+      fail-fast: false
       matrix:
         python-version:
           - "3.10"
@@ -300,6 +307,7 @@ jobs:
       - name: "Get version"
         shell: pwsh
         id: get-version
+        continue-on-error: true
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -337,6 +345,7 @@ jobs:
           $json = @{ platform = "Linux"; framework = "Python"; version = $version; actualVersion = $actualVersion } | ConvertTo-Json
           $json | Set-Content -Path output.json
       - name: "Upload version"
+        if: steps.get-version.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: output-Linux-${{ matrix.python-version }}
@@ -388,7 +397,7 @@ jobs:
       - publish-python-versions
     runs-on: ubuntu-latest
 
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && !cancelled()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
