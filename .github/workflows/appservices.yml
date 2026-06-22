@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: "checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: "Login via Azure CLI"
@@ -157,7 +157,7 @@ jobs:
 
     steps:
       - name: "checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: "Login via Azure CLI"
@@ -276,7 +276,7 @@ jobs:
 
     steps:
       - name: "checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: "Login via Azure CLI"
