@@ -340,6 +340,7 @@ jobs:
           $appservicename = "app-$($platform)-python$version-versions-${{ env.azureLocation }}"
           $planName = "appsp-$($platform)-python$version-versions-${{ env.azureLocation }}"
           $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
+          echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
           Write-Host "Creating web app $appservicename"
           az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux true
           if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
@@ -348,12 +349,9 @@ jobs:
           az webapp config appsettings set --resource-group $resourceGroup --name $appservicename --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
           if ($LASTEXITCODE -ne 0) { throw "Failed to enable build automation for $appservicename" }
           Compress-Archive -Path * -DestinationPath app.zip -Force -ErrorAction Stop
-          az webapp deploy --resource-group $resourceGroup --name $appservicename --src-path app.zip --type zip --track-status true
+          az webapp deploy --resource-group $resourceGroup --name $appservicename --src-path app.zip --type zip --async false --track-status false
           if ($LASTEXITCODE -ne 0) { throw "Failed to deploy web app $appservicename" }
           echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
-
-          # Create GitHub variable
-          echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
 
       - name: "Get version"
         shell: pwsh
@@ -381,14 +379,13 @@ jobs:
               try {
                   $count += 1
                   Write-Host "Getting version for $appservicename.azurewebsites.net"
-                  $response = Invoke-RestMethod -Method Get -Uri "https://$appservicename.azurewebsites.net"
+                  $response = Invoke-RestMethod -Method Get -Uri "https://$appservicename.azurewebsites.net" -TimeoutSec 30
               } catch {
-                  Write-Host "Retrying in 30 seconds..."
+                  if ($count -eq 20) {
+                      throw "Failed to get response from $appservicename.azurewebsites.net: $($_.Exception.Message)"
+                  }
+                  Write-Host "Request failed: $($_.Exception.Message). Retrying in 30 seconds..."
                   Start-Sleep -Seconds 30
-              }
-              if ($count -eq 10) {
-                  Write-Error "Failed to get response from $appservicename.azurewebsites.net"
-                  break
               }
           }
           $actualVersion = $response.Trim()
@@ -407,7 +404,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ matrix.python-version }}".Replace(".", "")
-          $appservicename = $env:APP_SERVICE_NAME
+          $appservicename = "app-linux-python$version-versions-${{ env.azureLocation }}"
           function Invoke-AzWithRetry {
             param(
               [scriptblock]$Command,
@@ -432,12 +429,14 @@ jobs:
             }
           }
 
-          Invoke-AzWithRetry -Description "Delete web app" -Command {
-            az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
-          }
-
-          Invoke-AzWithRetry -Description "Delete app service plan" -Command {
-            az appservice plan delete --name "appsp-linux-python$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+          try {
+            Invoke-AzWithRetry -Description "Delete web app" -Command {
+              az webapp delete --name $appservicename --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+            }
+          } finally {
+            Invoke-AzWithRetry -Description "Delete app service plan" -Command {
+              az appservice plan delete --name "appsp-linux-python$version-versions-${{ env.azureLocation }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+            }
           }
 
   publish-summary:
