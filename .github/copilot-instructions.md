@@ -13,7 +13,7 @@ This repository automates the discovery and reporting of actual runtime versions
   - The HTML report is published to GitHub Pages and is fully sortable (ARIA-compliant, see W3C example).
 
 ## Developer Workflows
-- **App Deployment**: Each app is deployed via `az webapp up` in the workflow, using the correct plan and runtime for each matrix entry.
+- **App Deployment**: The workflow creates an App Service plan and web app with Azure CLI, then deploys a ZIP package with `az webapp deploy`; Node.js and Python use App Service build automation.
 - **Version Reporting**: Each app is queried at its root URL. The response is saved as a JSON artifact, then aggregated into a Markdown summary and a sortable HTML table.
 - **Manual App Builds**:
   - Node: `cd apps/nodeApp && npm ci && node app.js`
