@@ -48,7 +48,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
       - name: "Setup .NET"
         uses: actions/setup-dotnet@v6
         with:
@@ -73,9 +72,9 @@ jobs:
           $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
           $appName = "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
           $planName = "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
-          $isLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
+          $planIsLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
 
-          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $isLinux
+          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $planIsLinux
           if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
           az webapp create --resource-group $resourceGroup --plan $planName --name $appName --runtime $runtime
           if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appName" }
@@ -192,7 +191,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/nodeApp
@@ -212,9 +210,9 @@ jobs:
           $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
           $appName = "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
           $planName = "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
-          $isLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
+          $planIsLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
 
-          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $isLinux
+          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $planIsLinux
           if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
           az webapp create --resource-group $resourceGroup --plan $planName --name $appName --runtime $runtime
           if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appName" }
@@ -327,7 +325,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
       - name: "Publish app"
         shell: pwsh
         working-directory: apps/pythonApp
