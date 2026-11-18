@@ -30,8 +30,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: [8, 9, 10]
+        dotnet-version: [10, 11]
         platform: [Windows, Linux]
+        include:
+          - dotnet-version: 10
+            platform: linux
+            runtime: DOTNETCORE:10.0
 
     steps:
       - name: "checkout"
@@ -52,16 +56,16 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.dotnet-version }}"
+          $runtime = "${{ matrix.runtime }}"
           $csprojPath = "dotnetApp.csproj"
           $csprojContent = Get-Content -Path $csprojPath
           $csprojContent = $csprojContent -replace '<TargetFramework>.*<\/TargetFramework>', "<TargetFramework>net${version}.0</TargetFramework>"
           $csprojContent | Set-Content -Path $csprojPath
           Get-Content $csprojPath
-          if ($platform -eq 'Windows') {
+          if ($runtime -eq "") {
             $runtime = "dotnet:$version"
-          } else {
-            $runtime = "DOTNETCORE:${version}.0"
           }
+
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
           if ($LASTEXITCODE -eq 0) {
             echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
@@ -104,7 +108,7 @@ jobs:
           name: output-${{ matrix.platform }}-${{ matrix.dotnet-version}}
           path: output.json
       - name: App Service plan delete
-        continue-on-error: true        
+        continue-on-error: true
         shell: pwsh
         run: |
           $platform = "${{ matrix.platform }}"
@@ -151,9 +155,13 @@ jobs:
       matrix:
         node-version: [22, 24]
         platform: [Windows, Linux]
-        # exclude:
-        #   - node-version: 24
-        #     platform: Windows
+        include:
+          - node-version: 26
+            platform: Windows
+            runtime: NODE:26
+          - node-version: 26
+            platform: Linux
+            runtime: NODE|26
 
     steps:
       - name: "checkout"
@@ -174,10 +182,13 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}"
           $version = "${{ matrix.node-version }}"
-          if ($platform -eq 'Windows') {
-            $runtime = "NODE:${version}LTS"
-          } else {
-            $runtime = "NODE|${version}-lts"
+          $runtime = "${{ matrix.runtime }}"
+          if ($runtime -eq "") {
+            if ($platform -eq 'Windows') {
+              $runtime = "NODE:${version}LTS"
+            } else {
+              $runtime = "NODE|${version}-lts"
+            }
           }
           az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
           if ($LASTEXITCODE -eq 0) {
@@ -267,11 +278,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
         platform: [Linux]
 
     steps:
