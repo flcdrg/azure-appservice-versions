@@ -217,6 +217,11 @@ jobs:
           az webapp create --resource-group $resourceGroup --plan $planName --name $appName --runtime $runtime
           if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appName" }
 
+          if ($platform -eq 'Windows') {
+            az webapp config set --resource-group $resourceGroup --name $appName --use-32bit-worker-process false
+            if ($LASTEXITCODE -ne 0) { throw "Failed to configure 64-bit worker for $appName" }
+          }
+
           az webapp config appsettings set --resource-group $resourceGroup --name $appName --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
           if ($LASTEXITCODE -ne 0) { throw "Failed to enable build automation for $appName" }
           Compress-Archive -Path * -DestinationPath app.zip -Force -ErrorAction Stop
@@ -243,12 +248,11 @@ jobs:
                   Write-Host "Getting version for app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
                   $response = Invoke-RestMethod -Method Get -Uri "https://app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
               } catch {
-                  Write-Host "Retrying in 30 seconds..."
+                  if ($count -eq 10) {
+                      throw "Failed to get response from app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net: $($_.Exception.Message)"
+                  }
+                  Write-Host "Request failed: $($_.Exception.Message). Retrying in 30 seconds..."
                   Start-Sleep -Seconds 30
-              }
-              if ($count -eq 10) {
-                  Write-Error "Failed to get response from app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}.azurewebsites.net"
-                  break
               }
           }
           $actualVersion = $response.Trim()
