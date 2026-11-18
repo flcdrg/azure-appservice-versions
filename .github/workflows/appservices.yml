@@ -49,6 +49,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
+      - name: "Setup .NET"
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}.x
       - name: "Publish apps"
         shell: pwsh
         working-directory: apps/dotnetApp
@@ -66,10 +70,23 @@ jobs:
             $runtime = "dotnet:$version"
           }
 
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
-          if ($LASTEXITCODE -eq 0) {
-            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
-          }
+          $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
+          $appName = "app-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
+          $planName = "appsp-$($platform.ToLower())-dotnet$version-versions-${{ env.azureLocation }}"
+          $isLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
+
+          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $isLinux
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
+          az webapp create --resource-group $resourceGroup --plan $planName --name $appName --runtime $runtime
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appName" }
+
+          dotnet publish $csprojPath --configuration Release --output publish
+          if ($LASTEXITCODE -ne 0) { throw "Failed to publish .NET app for runtime $version" }
+          Compress-Archive -Path publish/* -DestinationPath app.zip -Force -ErrorAction Stop
+
+          az webapp deploy --resource-group $resourceGroup --name $appName --src-path app.zip --type zip --track-status true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to deploy web app $appName" }
+          echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -155,6 +172,7 @@ jobs:
       matrix:
         node-version: [22, 24]
         platform: [Windows, Linux]
+        # 26 is not LTS yet
         include:
           - node-version: 26
             platform: Windows
@@ -187,13 +205,26 @@ jobs:
             if ($platform -eq 'Windows') {
               $runtime = "NODE:${version}LTS"
             } else {
-              $runtime = "NODE|${version}-lts"
+              $runtime = "NODE:${version}-lts"
             }
           }
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}" --os-type $platform --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
-          if ($LASTEXITCODE -eq 0) {
-            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
-          }
+
+          $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
+          $appName = "app-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
+          $planName = "appsp-$($platform.ToLower())-node$version-versions-${{ env.azureLocation }}"
+          $isLinux = if ($platform.ToLowerInvariant() -eq "linux") { "true" } else { "false" }
+
+          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux $isLinux
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
+          az webapp create --resource-group $resourceGroup --plan $planName --name $appName --runtime $runtime
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appName" }
+
+          az webapp config appsettings set --resource-group $resourceGroup --name $appName --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to enable build automation for $appName" }
+          Compress-Archive -Path * -DestinationPath app.zip -Force -ErrorAction Stop
+          az webapp deploy --resource-group $resourceGroup --name $appName --src-path app.zip --type zip --track-status true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to deploy web app $appName" }
+          echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
       - name: "Get version"
         shell: pwsh
         id: get-version
@@ -304,13 +335,21 @@ jobs:
         run: |
           $platform = "${{ matrix.platform }}".ToLower()
           $version = "${{ matrix.python-version }}".Replace(".", "") # Can't have dots in resource name
-          $runtime = "PYTHON|${{ matrix.python-version }}"
+          $runtime = "PYTHON:${{ matrix.python-version }}"
           $appservicename = "app-$($platform)-python$version-versions-${{ env.azureLocation }}"
+          $planName = "appsp-$($platform)-python$version-versions-${{ env.azureLocation }}"
+          $resourceGroup = "${{ vars.AZURE_RESOURCE_GROUP }}"
           Write-Host "Creating web app $appservicename"
-          az webapp up --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name $appservicename --os-type Linux --runtime "$runtime" --sku F1 --location ${{ env.azureLocation }} --track-status true --plan "appsp-$($platform)-python$version-versions-${{ env.azureLocation }}"
-          if ($LASTEXITCODE -eq 0) {
-            echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
-          }
+          az appservice plan create --resource-group $resourceGroup --name $planName --location ${{ env.azureLocation }} --sku F1 --is-linux true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create App Service plan $planName" }
+          az webapp create --resource-group $resourceGroup --plan $planName --name $appservicename --runtime $runtime
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create web app $appservicename" }
+          az webapp config appsettings set --resource-group $resourceGroup --name $appservicename --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to enable build automation for $appservicename" }
+          Compress-Archive -Path * -DestinationPath app.zip -Force -ErrorAction Stop
+          az webapp deploy --resource-group $resourceGroup --name $appservicename --src-path app.zip --type zip --track-status true
+          if ($LASTEXITCODE -ne 0) { throw "Failed to deploy web app $appservicename" }
+          echo "DEPLOY_SUCCESS=true" >> $env:GITHUB_ENV
 
           # Create GitHub variable
           echo "APP_SERVICE_NAME=$appservicename" >> $env:GITHUB_ENV
